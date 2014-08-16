@@ -138,6 +138,7 @@ prompt_for_key() {
 # Args: API key.
 save_apikey() {
     local key=$1
+    umask 0077
     printf '%s\n' "$key" > "$keyfile"
 }
 
