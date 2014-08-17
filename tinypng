@@ -160,7 +160,7 @@ get_shrinked_png_url() {
 # Args: File name, URL to PNG file.
 download() {
     local file=$1 url=$2
-    curl --fail --silent --output "$file" "$url"
+    curl --fail --progress-bar --output "$file" "$url"
 }
 
 ### MAIN ###
