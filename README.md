@@ -1,5 +1,10 @@
 A Bash script for shrinking PNG files, using tinypng.com
 ===================
+
+Dependencies
+------------
+Bash 4 ( and above ), and curl.
+
 ```
 NAME
         tinypng - Shrink PNGs using tinypng.com service.
