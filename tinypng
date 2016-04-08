@@ -23,7 +23,7 @@
 baseurl=api.tinypng.com
 # API URL.
 apiurl=https://$baseurl/shrink
-# Developers URL
+# Developers URL.
 dev_url=https://tinypng.com/developers
 # A file to keep the API key for future requests.
 keyfile="$HOME/.tinypng.apikey"
@@ -31,13 +31,13 @@ keyfile="$HOME/.tinypng.apikey"
 apikey=
 # PNGs to shrink.
 org_pngs=()
-# Indicates whether the user wants to download the shrinked PNGs
+# Indicates whether the user wants to download the shrinked PNGs.
 download_pngs=0
-# The directory to which the user wants to download the shrinked PNGs
+# The directory to which the user wants to download the shrinked PNGs.
 download_dir=
-# Print URLs of shrinked PNGs after download
+# Print URLs of shrinked PNGs after download.
 print_urls_after_dl=0
-# URLs to shrinked PNGs
+# URLs to shrinked PNGs.
 declare -A png_urls
 
 # Print help message to stdout.
@@ -150,7 +150,8 @@ get_shrinked_png_url() {
     if response=$(curl --fail --silent --include \
         --user api:"$apikey" \
         --data-binary @"$png" "$apiurl"); then
-            sed -ne 's/Location: //p' <<< "$response"
+            
+            grep -o -m1 'https://api.tinypng.com/output/.*png' <<< "$response"
     else
         return 1
     fi
