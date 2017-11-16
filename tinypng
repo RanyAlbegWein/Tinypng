@@ -1,11 +1,11 @@
 #!/bin/bash
-# Written by Rany Albeg Wein - rany.albeg@gmail.com
+# Written by Rany Albeg Wein - rany.albeg@gmail.com - 2017
 
 # Use tinypng.com API to shrink a png image.
 # Requires Bash 4 (or above) and curl.
 
 # Base URL for tinypng.com API service.
-baseurl=api.tinypng.com
+baseurl=api.tinify.com
 # API URL.
 apiurl=https://$baseurl/shrink
 # Developers URL.
@@ -131,15 +131,9 @@ save_apikey() {
 # Args: PNGs.
 get_shrinked_png_url() {
     local png=$1
-    local response=
-    if response=$(curl --fail --silent --include \
-        --user api:"$apikey" \
-        --data-binary @"$png" "$apiurl"); then
+    curl --fail --silent --user api:"$apikey" --fail --silent \
+        --data-binary @"$png" -i "$apiurl" --dump-header /dev/stdout | grep -oE -m1 "https://$baseurl/output/[[:alnum:]]+"
             
-            grep -o -m1 'https://api.tinypng.com/output/.*png' <<< "$response"
-    else
-        return 1
-    fi
 }
 
 # Download a PNG.

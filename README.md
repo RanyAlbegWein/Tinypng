@@ -1,6 +1,8 @@
 A Bash script for shrinking PNG files, using tinypng.com
 ===================
 
+sha1sum: b788cba5706b38ff63766fa7b82c4b24de3fc546
+
 Dependencies
 ------------
 Bash 4 ( and above ), and curl.
