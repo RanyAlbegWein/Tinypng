@@ -131,7 +131,7 @@ save_apikey() {
 # Args: PNGs.
 get_shrinked_png_url() {
     local png=$1
-    curl --fail --silent --user api:"$apikey" --fail --silent \
+    curl --fail --silent --user api:"$apikey" \
         --data-binary @"$png" -i "$apiurl" --dump-header /dev/stdout | grep -oE -m1 "https://$baseurl/output/[[:alnum:]]+"
             
 }
