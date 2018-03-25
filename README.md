@@ -3,6 +3,8 @@ A Bash script for shrinking PNG files, using tinypng.com
 
 sha1sum: 096491e9b871ebd3bd8b76d7ebe7eaccd1315c34
 
+<a href='https://ko-fi.com/E1E0B4X4' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi1.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
 Dependencies
 ------------
 Bash 4 ( and above ), and curl.
