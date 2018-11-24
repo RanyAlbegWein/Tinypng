@@ -1,5 +1,6 @@
 #!/bin/bash
 # Written by Rany Albeg Wein - rany.albeg@gmail.com - 2017
+# Source: https://github.com/RanyAlbegWein/Tinypng
 
 # Use tinypng.com API to shrink a png image.
 # Requires Bash 4 (or above) and curl.
@@ -86,15 +87,22 @@ is_png() {
     [[ "$(file --brief --mime-type "$file")" = "image/png" ]]
 }
 
+# Check if a file is a JPG image.
+# Args: File name.
+is_jpg() {
+    local file=$1
+    [[ "$(file --brief --mime-type "$file")" = "image/jpeg" ]]
+}
+
 # Check if a file is a PNG image and store it for shrinking.
 # Args: File name.
 check_and_store_png() {
     local file=$1
 
-    if [[ -f $file ]] && is_png "$file"; then
+    if [[ -f $file ]] && (is_png "$file" || is_jpg "$file"); then
         org_pngs+=("$file")
     else
-        printf 'tinypng: Skipping %s. It is not a PNG file.\n' "$file" >&2
+        printf 'tinypng: Skipping %s. It is not a PNG/JPEG file.\n' "$file" >&2
     fi
 }
 
