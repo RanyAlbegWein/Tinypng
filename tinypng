@@ -1,5 +1,8 @@
 #!/bin/bash
 # Written by Rany Albeg Wein - rany.albeg@gmail.com - 2017
+# Contributors:
+# * Jonas Hess ( re4jh )
+#   JPEG support.
 # Source: https://github.com/RanyAlbegWein/Tinypng
 
 # Use tinypng.com API to shrink a png image.
@@ -16,15 +19,15 @@ keyfile="$HOME/.tinypng.apikey"
 # The API key.
 apikey=
 # PNGs to shrink.
-org_pngs=()
+org_images=()
 # Indicates whether the user wants to download the shrinked PNGs.
-download_pngs=0
+download_images=0
 # The directory to which the user wants to download the shrinked PNGs.
 download_dir=
 # Print URLs of shrinked PNGs after download.
 print_urls_after_dl=0
-# URLs to shrinked PNGs.
-declare -A png_urls
+# URLs to shrinked PNG/JPEGs.
+declare -A image_urls
 
 # Print help message to stdout.
 # Args: none.
@@ -33,22 +36,22 @@ show_help() {
     local reset=$(tput sgr0)
 cat<<-EOF
 ${bold}NAME${reset}
-        tinypng - Shrink PNGs using tinypng.com service.
+        tinypng - Shrink PNG/JPEGs using tinypng.com service.
 
 ${bold}SYNOPSIS${reset}
         tinypng [-dkph] -f FILE
 
 ${bold}DESCRIPTION${reset}
-        Shrink PNGs using tinypng.com service.
+        Shrink PNG/JPEGs using tinypng.com service.
         
         On first execution, or if $keyfile is not present, tinypng will ask for an API key.
         Obtain your API key from $dev_url, copy and paste it when prompted.
 
 ${bold}OPTIONS${reset}
         -f,--file FILE              Select a FILE to be shrinked.
-        -d,--download DIRECTORY     Download all shrinked PNGs to DIRECTORY.
+        -d,--download DIRECTORY     Download all shrinked images to DIRECTORY.
         -k,--key API_KEY            Use API_KEY, instead of the one stored in $keyfile.
-        -p,--print                  When -d is being used, the URLs of the shrinked PNGs are not being printed to stdout.
+        -p,--print                  When -d is being used, the URLs of the shrinked images are not being printed to stdout.
                                     Use this option to force printing even when using -d.
                                     Otherwise, this option is set implicitly.
         -- FILES                    Ignore any options to come.
@@ -56,15 +59,18 @@ ${bold}OPTIONS${reset}
         -h,--help                   Show this message and exit successfully.
             
 ${bold}EXAMPLES${reset}
-        Shrink foo.png, bar.png, baz.png and print the result URLs to stdout.
-        ${bold}$ tinypng -f foo.png -f bar.png -f baz.png${reset}
+        Shrink foo.jpg, bar.png, baz.png and print the result URLs to stdout.
+        ${bold}$ tinypng -f foo.jpg -f bar.png -f baz.png${reset}
             or
-        ${bold}$ tinypng -- foo.png bar.png baz.png${reset}
-        Shrink foo.png, bar.png, baz.png and download the result PNGs to tiny_pngs/ directory
-        ${bold}$ tinypng -d tiny_pngs/ -- foo.png bar.png baz.png${reset}
+        ${bold}$ tinypng -- foo.jpg bar.png baz.png${reset}
+        Shrink foo.jpg, bar.png, baz.png and download the result images to tiny_pngs/ directory
+        ${bold}$ tinypng -d tiny_pngs/ -- foo.jpg bar.png baz.png${reset}
 
 Written by Rany Albeg Wein - rany.albeg@gmail.com
-16/8/2014
+Contributors
+    * Jonas Hess ( re4jh )
+      JPEG support.
+24/11/2018
 EOF
 }
 
@@ -87,20 +93,20 @@ is_png() {
     [[ "$(file --brief --mime-type "$file")" = "image/png" ]]
 }
 
-# Check if a file is a JPG image.
+# Check if a file is a JPEG image.
 # Args: File name.
 is_jpg() {
     local file=$1
     [[ "$(file --brief --mime-type "$file")" = "image/jpeg" ]]
 }
 
-# Check if a file is a PNG image and store it for shrinking.
+# Check if a file is a PNG/JPEG image and store it for shrinking.
 # Args: File name.
-check_and_store_png() {
+check_and_store_image() {
     local file=$1
 
     if [[ -f $file ]] && (is_png "$file" || is_jpg "$file"); then
-        org_pngs+=("$file")
+        org_images+=("$file")
     else
         printf 'tinypng: Skipping %s. It is not a PNG/JPEG file.\n' "$file" >&2
     fi
@@ -135,9 +141,9 @@ save_apikey() {
     printf '%s\n' "$key" > "$keyfile"
 }
 
-# Request a tiny PNG URL from tinypng.com.
+# Request a tiny URL from tinypng.com.
 # Args: PNGs.
-get_shrinked_png_url() {
+get_shrinked_url() {
     local png=$1
     curl --fail --silent --user api:"$apikey" \
         --data-binary @"$png" -i "$apiurl" --dump-header /dev/stdout | grep -oE -m1 "https://$baseurl/output/[[:alnum:]]+"
@@ -167,12 +173,12 @@ while (( $# ));do
         -d|--download)
             [[ -d $2 ]] || die "$1 requires a directory name as an argument."
             download_dir=${2%/}
-            download_pngs=1
+            download_images=1
             shift
             ;;
         -f|--file)
             if [[ $2 ]]; then
-                check_and_store_png "$2"
+                check_and_store_image "$2"
             else
                 die "$1 requires an argument."
             fi
@@ -184,7 +190,7 @@ while (( $# ));do
         --)
             shift
             for f;do
-                check_and_store_png "$f"
+                check_and_store_image "$f"
             done
             break
             ;;
@@ -194,7 +200,7 @@ while (( $# ));do
     shift
 done
 
-(( ${#org_pngs[@]} )) || { show_help; exit 1; }
+(( ${#org_images[@]} )) || { show_help; exit 1; }
 
 # Check if tinypng.com is indeed reachable.
 is_reachable "$baseurl" || die "tinypng.com is not reachable."
@@ -207,29 +213,29 @@ if [[ ! $apikey ]]; then
     fi
 fi
 
-# Request tinypng.com to shrink PNGs.
-for png in "${org_pngs[@]}"; do
-    printf 'Shrinking %s\n' "${png##*/} ..." >&2
-    if png_url=$(get_shrinked_png_url "$png"); then
-        png_urls["tinypng_${png##*/}"]="$png_url"
+# Request tinypng.com to shrink imagess.
+for image in "${org_images[@]}"; do
+    printf 'Shrinking %s\n' "${image##*/} ..." >&2
+    if image_url=$(get_shrinked_url "$image"); then
+        image_urls["tinypng_${image##*/}"]="$image_url"
     else
-        printf 'tinypng: tinypng.com failed to shrink %s.\n' "$png" >&2
+        printf 'tinypng: tinypng.com failed to shrink %s.\n' "$image" >&2
     fi
 done
 
 # If some of the PNGs were shrinked successfully.
-if (( ${#png_urls[@]} )); then
+if (( ${#image_urls[@]} )); then
     # Download shrinked PNGs.
-    if (( download_pngs )); then
-        for key in "${!png_urls[@]}"; do
+    if (( download_images )); then
+        for key in "${!image_urls[@]}"; do
             printf 'Downloading %s to %s\n' "$key" "$download_dir" >&2
-            if ! download "$download_dir/$key" "${png_urls[$key]}"; then
-                printf 'tinypng: Failed to download %s from %s to %s.\n' "$key" "${png_urls[$key]}" "$download_dir" >&2
+            if ! download "$download_dir/$key" "${image_urls[$key]}"; then
+                printf 'tinypng: Failed to download %s from %s to %s.\n' "$key" "${image_urls[$key]}" "$download_dir" >&2
             fi
         done
-        (( print_urls_after_dl )) && printf '%s\n' "${png_urls[@]}"
-    # Print the URLs of the shrinked PNGs.
+        (( print_urls_after_dl )) && printf '%s\n' "${image_urls[@]}"
+    # Print the URLs of the shrinked images.
     else
-        printf '%s\n' "${png_urls[@]}"
+        printf '%s\n' "${image_urls[@]}"
     fi
 fi
