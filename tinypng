@@ -28,6 +28,8 @@ download_dir=
 print_urls_after_dl=0
 # URLs to shrinked images.
 declare -A image_urls
+# Indicates whether the filenames should replace the originals (otherwise tinypng_ is prefixed)
+replace_filenames=0
 
 # Print help message to stdout.
 # Args: none.
@@ -39,7 +41,7 @@ ${bold}NAME${reset}
         tinypng - Shrink PNG/JPEGs using tinypng.com service.
 
 ${bold}SYNOPSIS${reset}
-        tinypng [-dkph] -f FILE
+        tinypng [-dkphr] -f FILE
 
 ${bold}DESCRIPTION${reset}
         Shrink PNG/JPEGs using tinypng.com service.
@@ -50,6 +52,7 @@ ${bold}DESCRIPTION${reset}
 ${bold}OPTIONS${reset}
         -f,--file FILE              Select a FILE to be shrinked.
         -d,--download DIRECTORY     Download all shrinked images to DIRECTORY.
+        -r,--replace                Replace the original files by the shrinked ones.
         -k,--key API_KEY            Use API_KEY, instead of the one stored in $keyfile.
         -p,--print                  When -d is being used, the URLs of the shrinked images are not being printed to stdout.
                                     Use this option to force printing even when using -d.
@@ -184,6 +187,14 @@ while (( $# ));do
             fi
             shift
             ;;
+        -r|--replace)
+            if [ -z "$download_dir" ]; then
+              download_dir='.'
+            fi
+            download_images=1
+            replace_filenames=1
+            shift
+            ;;
         -p|--print)
             print_urls_after_dl=1
             ;;
@@ -217,7 +228,11 @@ fi
 for image in "${org_images[@]}"; do
     printf 'Shrinking %s\n' "${image##*/} ..." >&2
     if image_url=$(get_shrinked_url "$image"); then
-        image_urls["tinypng_${image##*/}"]="$image_url"
+        if (( replace_filenames )); then
+          image_urls["${image##*/}"]="$image_url"
+        else
+          image_urls["tinypng_${image##*/}"]="$image_url"
+        fi
     else
         printf 'tinypng: tinypng.com failed to shrink %s.\n' "$image" >&2
     fi
