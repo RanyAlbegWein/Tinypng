@@ -18,15 +18,15 @@ dev_url=https://tinypng.com/developers
 keyfile="$HOME/.tinypng.apikey"
 # The API key.
 apikey=
-# Images to shrink.
+# PNGs to shrink.
 org_images=()
-# Indicates whether the user wants to download the shrinked images.
+# Indicates whether the user wants to download the shrinked PNGs.
 download_images=0
-# The directory to which the user wants to download the shrinked images.
+# The directory to which the user wants to download the shrinked PNGs.
 download_dir=
-# Print URLs of shrinked images after download.
+# Print URLs of shrinked PNGs after download.
 print_urls_after_dl=0
-# URLs to shrinked images.
+# URLs to shrinked PNG/JPEGs.
 declare -A image_urls
 
 # Print help message to stdout.
@@ -142,19 +142,21 @@ save_apikey() {
 }
 
 # Request a tiny URL from tinypng.com.
-# Args: Images.
+# Args: PNGs.
 get_shrinked_url() {
-    local f=$1
+    local png=$1
     curl --fail --silent --user api:"$apikey" \
-        --data-binary @"$f" -i "$apiurl" --dump-header /dev/stdout | grep -oE -m1 "https://$baseurl/output/[[:alnum:]]+"
+        --data-binary @"$png" -i "$apiurl" --dump-header /dev/stdout | grep -oE -m1 "https://$baseurl/output/[[:alnum:]]+"
             
 }
 
-# Download an image.
-# Args: File name, URL to image.
-download() {
+# Download a PNG.
+# Args: File name, URL to PNG file.
+# todo: change name to download in background
+download_in_bg() {
     local file=$1 url=$2
-    curl --fail --progress-bar --output "$file" "$url"
+    curl --fail --progress-bar --output "$file" "$url" &
+    wait
 }
 
 ### MAIN ###
@@ -213,7 +215,7 @@ if [[ ! $apikey ]]; then
     fi
 fi
 
-# Request tinypng.com to shrink images.
+# Request tinypng.com to shrink imagess.
 for image in "${org_images[@]}"; do
     printf 'Shrinking %s\n' "${image##*/} ..." >&2
     if image_url=$(get_shrinked_url "$image"); then
@@ -223,13 +225,13 @@ for image in "${org_images[@]}"; do
     fi
 done
 
-# If some of the images  were shrinked successfully.
+# If some of the PNGs were shrinked successfully.
 if (( ${#image_urls[@]} )); then
-    # Download shrinked images.
+    # Download shrinked PNGs.
     if (( download_images )); then
         for key in "${!image_urls[@]}"; do
             printf 'Downloading %s to %s\n' "$key" "$download_dir" >&2
-            if ! download "$download_dir/$key" "${image_urls[$key]}"; then
+            if ! download_in_bg "$download_dir/$key" "${image_urls[$key]}"; then
                 printf 'tinypng: Failed to download %s from %s to %s.\n' "$key" "${image_urls[$key]}" "$download_dir" >&2
             fi
         done
